@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@keyframes grid {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(50px);
+  }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.animate-grid {
+  animation: grid 20s linear infinite;
+}
+
+.animate-scanline {
+  animation: scanline 8s linear infinite;
+}
+
+/* Custom scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-track-transparent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thumb-cyan-500\/20::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.2);
+  border-radius: 3px;
+}
+
+.scrollbar-thumb-cyan-500\/20::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.4);
+}
