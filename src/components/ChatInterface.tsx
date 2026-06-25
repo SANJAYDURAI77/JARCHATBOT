@@ -49,43 +49,74 @@ export function ChatInterface() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputValue.trim()) return;
 
+    const userMessage = inputValue;
     const newMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: inputValue,
+      content: userMessage,
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, newMessage]);
     setInputValue('');
-    
-    // Simulate AI response
+
+    // Call LM Studio API
     setIsTyping(true);
-    setTimeout(() => {
+
+    try {
+      // Use the proxy path /api/v1 which redirects to http://localhost:1234/v1
+      const response = await fetch('/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'local-model',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are Probe, a helpful AI assistant with a professional yet friendly demeanor, similar to JARVIS. Keep responses concise and helpful.'
+            },
+            ...messages.map(msg => ({
+              role: msg.type === 'user' ? 'user' : 'assistant',
+              content: msg.content
+            })),
+            { role: 'user', content: userMessage }
+          ],
+          temperature: 0.7,
+          max_tokens: 500,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`LM Studio API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const aiContent = data.choices?.[0]?.message?.content || 'I apologize, but I was unable to process that request.';
+
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: getAIResponse(inputValue),
+        content: aiContent,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('LM Studio API error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: 'Connection to LM Studio failed. Please ensure LM Studio is running with a model loaded on localhost:1234.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500 + Math.random() * 1000);
-  };
-
-  const getAIResponse = (userInput: string): string => {
-    const responses = [
-      'Understood. Processing your request now.',
-      'Affirmative. Running analysis on the specified parameters.',
-      'Data retrieved successfully. Shall I display the results?',
-      'All systems are operating within normal parameters.',
-      'I have completed the requested operation, sir.',
-      'Integration complete. Would you like me to continue?',
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -144,20 +175,19 @@ export function ChatInterface() {
                 <ChatMessage key={message.id} message={message} />
               ))}
             </AnimatePresence>
-            
+
             {isTyping && <TypingIndicator />}
-            
+
             <div ref={messagesEndRef} />
           </div>
         </div>
 
         {/* Input Area */}
         <div className="relative mt-4">
-          <div className={`flex items-end gap-3 px-6 py-4 rounded-xl border transition-all duration-300 ${
-            isFocused 
-              ? 'border-cyan-400/60 bg-black/60 shadow-[0_0_20px_rgba(34,211,238,0.2)]' 
+          <div className={`flex items-end gap-3 px-6 py-4 rounded-xl border transition-all duration-300 ${isFocused
+              ? 'border-cyan-400/60 bg-black/60 shadow-[0_0_20px_rgba(34,211,238,0.2)]'
               : 'border-cyan-500/30 bg-black/40'
-          } backdrop-blur-sm`}>
+            } backdrop-blur-sm`}>
             <div className="flex-1">
               <input
                 ref={inputRef}
@@ -171,7 +201,7 @@ export function ChatInterface() {
                 className="w-full bg-transparent border-none outline-none text-emerald-100 placeholder-emerald-400/40 font-light tracking-wide"
               />
             </div>
-            
+
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -180,7 +210,7 @@ export function ChatInterface() {
               >
                 <Mic className="w-4 h-4 text-emerald-400 group-hover:text-emerald-300 transition-colors" />
               </button>
-              
+
               <button
                 type="button"
                 onClick={handleSend}
@@ -191,7 +221,7 @@ export function ChatInterface() {
               </button>
             </div>
           </div>
-          
+
           {/* Bottom glow */}
           {isFocused && (
             <motion.div
